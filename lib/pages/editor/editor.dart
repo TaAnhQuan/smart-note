@@ -47,6 +47,7 @@ import 'package:saber/data/tools/pencil.dart';
 import 'package:saber/data/tools/select.dart';
 import 'package:saber/data/tools/shape_pen.dart';
 import 'package:saber/i18n/strings.g.dart';
+import 'package:saber/pages/chat_screen/chat_screen.dart';
 import 'package:saber/pages/home/whiteboard.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:super_clipboard/super_clipboard.dart';
@@ -100,6 +101,7 @@ class Editor extends StatefulWidget {
 
 class EditorState extends State<Editor> {
   final log = Logger('EditorState');
+  bool _isSplit = false;
 
   late EditorCoreInfo coreInfo = EditorCoreInfo(filePath: '');
 
@@ -176,6 +178,11 @@ class EditorState extends State<Editor> {
 
   /// If the stylus button is pressed, or was pressed during the current draw gesture.
   bool stylusButtonPressed = false;
+
+  /// Toggle the state of the button to display the chat screen
+  void _toggleSplit() {
+    setState(() => _isSplit = !_isSplit);
+  }
 
   @override
   void initState() {
@@ -1586,8 +1593,8 @@ class EditorState extends State<Editor> {
                 ? VerticalDirection.up
                 : VerticalDirection.down,
         children: [
-          Expanded(child: canvas),
           toolbar,
+          Expanded(child: canvas),
           if (readonlyBanner != null) readonlyBanner,
         ],
       );
@@ -1640,6 +1647,13 @@ class EditorState extends State<Editor> {
                   triggerSave: saveToFile,
                 ),
                 actions: [
+                  IconButton(
+                      icon: const AdaptiveIcon(
+                          icon: Icons.messenger,
+                          cupertinoIcon: CupertinoIcons.add),
+                    onPressed: _toggleSplit,
+                    tooltip: _isSplit ? 'Return to single view' : 'Split screen',
+                  ),
                   IconButton(
                     icon: const AdaptiveIcon(
                       icon: Icons.insert_page_break,
@@ -1694,7 +1708,17 @@ class EditorState extends State<Editor> {
                   )
                 ],
               ),
-        body: body,
+        body: Row(
+            children: [
+              Expanded(child: body),
+              if (_isSplit) VerticalDivider(thickness: 1),
+              AnimatedContainer(
+                duration: Duration(milliseconds: 300),
+                width: _isSplit? 300 : 0,
+                child: _isSplit ? ChatScreen(): null,
+              ),
+            ],
+          ),
         floatingActionButton: (DynamicMaterialApp.isFullscreen &&
                 !Prefs.editorToolbarShowInFullscreen.value)
             ? FloatingActionButton(

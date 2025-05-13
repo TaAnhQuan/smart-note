@@ -1,4 +1,3 @@
-import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
@@ -34,7 +33,7 @@ class CanvasHud extends StatefulWidget {
 }
 
 class _CanvasHudState extends State<CanvasHud> {
-  Timer? _hideTimer;
+  // Timer? _hideTimer;
   double opacity = 0;
 
   @override
@@ -44,10 +43,10 @@ class _CanvasHudState extends State<CanvasHud> {
   }
 
   void _onTransformationChanged() {
-    _hideTimer?.cancel();
-    _hideTimer = Timer(const Duration(seconds: 5), () {
-      setState(() => opacity = 0);
-    });
+    // _hideTimer?.cancel();
+    // _hideTimer = Timer(const Duration(seconds: 5), () {
+    //   setState(() => opacity = 0);
+    // });
 
     if (opacity != 1) {
       setState(() => opacity = 1);
@@ -123,7 +122,7 @@ class _CanvasHudState extends State<CanvasHud> {
   @override
   void dispose() {
     widget.transformationController.removeListener(_onTransformationChanged);
-    _hideTimer?.cancel();
+    // _hideTimer?.cancel();
     super.dispose();
   }
 }
