@@ -63,7 +63,7 @@ dependencies:
   intl: any
 
   crypto: ^3.0.2
-  encrypt: ^5.0.1
+  encrypt: ^5.0.3
 
   http: ^1.1.0
 
@@ -159,6 +159,9 @@ dependencies:
 
   path: ^1.9.1
 
+  objectbox: ^4.0.0
+  objectbox_flutter_libs: ^4.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -179,6 +182,9 @@ dev_dependencies:
   yaml: ^3.1.2
 
   golden_screenshot: ^3.0.2
+
+  objectbox_generator: ^4.0.0
+  build_runner: ^2.4.15
 
 dependency_overrides:
   path: 1.9.0

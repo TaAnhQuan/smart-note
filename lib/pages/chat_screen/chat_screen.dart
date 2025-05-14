@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:objectbox/objectbox.dart';
 import 'package:saber/components/asr/stt.dart';
 import 'package:saber/components/llm/llm.dart';
 import 'package:saber/data/message/chat_message.dart';
+import 'package:saber/data/objectbox.g.dart';
 
 
 class ChatScreen extends StatefulWidget {
@@ -11,6 +13,10 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final List<ChatMessage> _messages = [];
+  late final Store _store;
+  late final Box<ChatMessage> _messageBox;
+
+  // Controller define
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final SpeechToTextService _speechToTextService = SpeechToTextService();
@@ -22,6 +28,27 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState(){
     super.initState();
     _initInputField();
+    _initStore();
+  }
+
+  Future<void> _initStore() async {
+    _store = await openStore();
+    _messageBox = _store.box<ChatMessage>();
+    _loadSavedMessages();
+  }
+
+  void _loadSavedMessages(){
+    final saved = _messageBox.getAll();
+    setState(() {
+      _messages.addAll(saved);
+      _scrollToBottom();
+    });
+  }
+
+  @override
+  void dispose(){
+    _store.close();
+    super.dispose();
   }
 
   Future<void> _initInputField() async{
@@ -35,14 +62,19 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _sendMessage() async {
-    final text = _controller.text.trim();
-    if (text.isEmpty) return;
+    final userMessageText = _controller.text.trim();
+    if (userMessageText.isEmpty) return;
+
+    print("Send message to LLM");
 
     // 1) Optimistically show the user’s message
     setState(() {
-      _messages.add(ChatMessage(text: text, isUser: true));
+      final userMessage = ChatMessage(text: userMessageText, isUser: true);
+
+      _messages.add(ChatMessage(text: userMessageText, isUser: true));
+      _messageBox.put(userMessage);
       // Optionally show a “typing…” or spinner message until the real reply arrives
-      _messages.add(ChatMessage(text: '...', isUser: false));
+      _messages.add(ChatMessage(text: '...', isUser: false, id: 0));
     });
 
     // clear input and scroll down
@@ -51,7 +83,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     try {
       // 2) Actually wait for the network call to finish
-      await _llmService.sendToGemini(text);
+      await _llmService.sendToGemini(userMessageText);
 
       // 3) Grab the real response
       final response = _llmService.llmResponse;
@@ -59,8 +91,11 @@ class _ChatScreenState extends State<ChatScreen> {
       setState(() {
         // remove the loading placeholder
         _messages.removeLast();
+
+        final botMessage = ChatMessage(text: response, isUser: false);
         // insert the actual bot response
         _messages.add(ChatMessage(text: response, isUser: false));
+        _messageBox.put(botMessage);
       });
     } catch (e) {
       setState(() {
@@ -88,8 +123,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildMessage(ChatMessage msg) {
     final alignment = msg.isUser ? Alignment.centerRight : Alignment.centerLeft;
-    final bgColor = msg.isUser ? Colors.white : Colors.white;
-    final textColor = Colors.black87;
+    final bgColor = msg.isUser ? Colors.blue.shade100 : Colors.grey.shade200;
+    final textColor = msg.isUser
+        ? Colors.black87
+        : Colors.black87;
     final borderRadius = msg.isUser
         ? BorderRadius.only(
       topLeft: Radius.circular(16),
@@ -141,6 +178,10 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text('Assistant'),
+        automaticallyImplyLeading: false,
+      ),
       body: Column(
         children: [
           Expanded(
