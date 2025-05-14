@@ -60,6 +60,8 @@ class Editor extends StatefulWidget {
     String? path,
     this.customTitle,
     this.pdfPath,
+    this.splitAxis = Axis.horizontal,
+    this.initialRatio = 0.5,
   })  : initialPath =
             path != null ? Future.value(path) : FileManager.newFilePath('/'),
         needsNaming = path == null;
@@ -69,6 +71,9 @@ class Editor extends StatefulWidget {
 
   final String? customTitle;
   final String? pdfPath;
+
+  final Axis splitAxis;
+  final double initialRatio;
 
   /// The file extension used by the app.
   /// Files with this extension are
@@ -102,6 +107,9 @@ class Editor extends StatefulWidget {
 class EditorState extends State<Editor> {
   final log = Logger('EditorState');
   bool _isSplit = false;
+  late bool _dragging;
+  late double _ratio;
+  final dividerThickness = 8.0;
 
   late EditorCoreInfo coreInfo = EditorCoreInfo(filePath: '');
 
@@ -190,7 +198,8 @@ class EditorState extends State<Editor> {
 
     _initAsync();
     _assignKeybindings();
-
+    _dragging = false;
+    _ratio = widget.initialRatio;
     super.initState();
   }
 
@@ -1600,57 +1609,66 @@ class EditorState extends State<Editor> {
       );
     }
 
-    return ValueListenableBuilder(
-      valueListenable: savingState,
-      builder: (context, savingState, child) {
-        // don't allow user to go back until saving is done
-        return PopScope(
-          canPop: savingState == SavingState.saved,
-          onPopInvokedWithResult: (didPop, _) {
-            switch (savingState) {
-              case SavingState.waitingToSave:
-                assert(!didPop);
-                saveToFile(); // trigger save now
-                snackBarNeedsToSaveBeforeExiting();
-              case SavingState.saving:
-                assert(!didPop);
-                snackBarNeedsToSaveBeforeExiting();
-              case SavingState.saved:
-                break;
-            }
-          },
-          child: child!,
-        );
-      },
-      child: Scaffold(
-        appBar: DynamicMaterialApp.isFullscreen
-            ? null
-            : AppBar(
+    return LayoutBuilder(
+        builder: (context, constraints){
+          final maxSize = widget.splitAxis == Axis.horizontal
+              ? constraints.maxWidth
+              : constraints.maxHeight;
+          final dividerThickness = 8.0;
+          final firstSize = _ratio * maxSize;
+          final secondSize = maxSize - firstSize - dividerThickness;
+
+          return ValueListenableBuilder(
+            valueListenable: savingState,
+            builder: (context, savingState, child) {
+              // don't allow user to go back until saving is done
+              return PopScope(
+                canPop: savingState == SavingState.saved,
+                onPopInvokedWithResult: (didPop, _) {
+                  switch (savingState) {
+                    case SavingState.waitingToSave:
+                      assert(!didPop);
+                      saveToFile(); // trigger save now
+                      snackBarNeedsToSaveBeforeExiting();
+                    case SavingState.saving:
+                      assert(!didPop);
+                      snackBarNeedsToSaveBeforeExiting();
+                    case SavingState.saved:
+                      break;
+                  }
+                },
+                child: child!,
+              );
+            },
+            child: Scaffold(
+              appBar: DynamicMaterialApp.isFullscreen
+                  ? null
+                  : AppBar(
                 toolbarHeight: kToolbarHeight,
                 title: widget.customTitle != null
                     ? Text(widget.customTitle!)
                     : Form(
-                        key: _filenameFormKey,
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
-                        child: TextFormField(
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                          ),
-                          controller: filenameTextEditingController,
-                          onChanged: renameFile,
-                          autofocus: needsNaming,
-                          validator: _validateFilenameTextField,
-                        ),
-                      ),
+                  key: _filenameFormKey,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  child: TextFormField(
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                    ),
+                    controller: filenameTextEditingController,
+                    onChanged: renameFile,
+                    autofocus: needsNaming,
+                    validator: _validateFilenameTextField,
+                  ),
+                ),
                 leading: SaveIndicator(
                   savingState: savingState,
                   triggerSave: saveToFile,
                 ),
                 actions: [
                   IconButton(
-                      icon: const AdaptiveIcon(
-                          icon: Icons.messenger,
-                          cupertinoIcon: CupertinoIcons.add),
+                    icon: const AdaptiveIcon(
+                        icon: Icons.messenger,
+                        cupertinoIcon: CupertinoIcons.add),
                     onPressed: _toggleSplit,
                     tooltip: _isSplit ? 'Return to single view' : 'Split screen',
                   ),
@@ -1708,28 +1726,75 @@ class EditorState extends State<Editor> {
                   )
                 ],
               ),
-        body: Row(
-            children: [
-              Expanded(child: body),
-              if (_isSplit) VerticalDivider(thickness: 1),
-              AnimatedContainer(
-                duration: Duration(milliseconds: 300),
-                width: _isSplit? 300 : 0,
-                child: _isSplit ? ChatScreen(): null,
+              body: Flex(
+                direction: widget.splitAxis,
+                children: _isSplit ?[
+                  SizedBox(
+                      width: widget.splitAxis == Axis.horizontal ? firstSize : null,
+                      height: widget.splitAxis == Axis.vertical ? firstSize : null,
+                      child: body
+                  ),
+
+                  // Divider
+                  GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onPanStart: (_) => setState(() => _dragging = true),
+                    onPanUpdate: (details) {
+                      setState(() {
+                        final delta = widget.splitAxis == Axis.horizontal
+                            ? details.delta.dx
+                            : details.delta.dy;
+                        _ratio = (_ratio * maxSize + delta) / maxSize;
+                        _ratio = _ratio.clamp(0.1, 0.9);
+                      });
+                    },
+                    onPanEnd: (_) => setState(() => _dragging = false),
+                    child: MouseRegion(
+                      cursor: widget.splitAxis == Axis.horizontal
+                          ? SystemMouseCursors.resizeLeftRight
+                          : SystemMouseCursors.resizeUpDown,
+                      child: Container(
+                        color: _dragging
+                            ? Colors.blueAccent.withOpacity(0.3)
+                            : Colors.grey.withOpacity(0.2),
+                        width: widget.splitAxis == Axis.horizontal
+                            ? dividerThickness
+                            : double.infinity,
+                        height: widget.splitAxis == Axis.vertical
+                            ? dividerThickness
+                            : double.infinity,
+                      ),
+                    ),
+                  ),
+                  Flexible(
+                    flex: (100 - (_ratio * 100).round()),
+                    child: AnimatedContainer(
+                      duration: Duration(milliseconds: 300),
+                      width: widget.splitAxis == Axis.horizontal ? secondSize : null,
+                      height: widget.splitAxis == Axis.vertical ? secondSize : null,
+                      child: _isSplit ? ChatScreen(): null,
+                    ),
+                  ),
+                ] :
+                  [
+                    Expanded(
+                      child: body,
+                    ),
+                  ]
               ),
-            ],
-          ),
-        floatingActionButton: (DynamicMaterialApp.isFullscreen &&
-                !Prefs.editorToolbarShowInFullscreen.value)
-            ? FloatingActionButton(
+              floatingActionButton: (DynamicMaterialApp.isFullscreen &&
+                  !Prefs.editorToolbarShowInFullscreen.value)
+                  ? FloatingActionButton(
                 shape: cupertino ? const CircleBorder() : null,
                 onPressed: () {
                   DynamicMaterialApp.setFullscreen(false, updateSystem: true);
                 },
                 child: const Icon(Icons.fullscreen_exit),
               )
-            : null,
-      ),
+                  : null,
+            ),
+          );
+        }
     );
   }
 

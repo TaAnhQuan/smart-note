@@ -141,18 +141,6 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Icon(Icons.chat_bubble_outline, color: Color(0xFF10A37F)),
-            ),
-            SizedBox(width: 8),
-            Text('ChatGPT Clone', style: TextStyle(color: Colors.white)),
-          ],
-        ),
-      ),
       body: Column(
         children: [
           Expanded(
