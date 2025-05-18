@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:collection/collection.dart';
 import 'package:fixnum/fixnum.dart';
+import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:one_dollar_unistroke_recognizer/one_dollar_unistroke_recognizer.dart';
@@ -141,7 +142,7 @@ class Stroke {
       'i': pageIndex,
       'ty': penType,
       'pe': pressureEnabled,
-      'c': color.toARGB32(),
+      'c': color.value32bit,
     }..addAll(options.toJson());
   }
 

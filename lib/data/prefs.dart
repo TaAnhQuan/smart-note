@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -248,13 +249,13 @@ abstract class Prefs {
         PlainPref('lastShapePenProperties', Pen.shapePenOptions);
 
     lastFountainPenColor =
-        PlainPref('lastFountainPenColor', Colors.black.toARGB32());
+        PlainPref('lastFountainPenColor', Colors.black.value32bit);
     lastBallpointPenColor =
-        PlainPref('lastBallpointPenColor', Colors.black.toARGB32());
+        PlainPref('lastBallpointPenColor', Colors.black.value32bit);
     lastHighlighterColor = PlainPref('lastHighlighterColor',
-        Colors.yellow.withAlpha(Highlighter.alpha).toARGB32());
-    lastPencilColor = PlainPref('lastPencilColor', Colors.black.toARGB32());
-    lastShapePenColor = PlainPref('lastShapePenColor', Colors.black.toARGB32());
+        Colors.yellow.withAlpha(Highlighter.alpha).value32bit);
+    lastPencilColor = PlainPref('lastPencilColor', Colors.black.value32bit);
+    lastShapePenColor = PlainPref('lastShapePenColor', Colors.black.value32bit);
 
     lastBackgroundPattern =
         PlainPref('lastBackgroundPattern', CanvasBackgroundPattern.none);

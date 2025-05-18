@@ -175,12 +175,57 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  void _confirmDeleteAllMessages() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Clear History'),
+        content: Text('Are you sure you want to delete all chat history?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteAllChatHistory();
+            },
+            child: Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteAllChatHistory() async {
+    // Remove from ObjectBox
+    _messageBox.removeAll();
+
+    // Clear local messages
+    setState(() {
+      _messages.clear();
+    });
+
+    // Optional: Show confirmation snackbar
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('All chat history cleared')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Assistant'),
         automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.delete_forever),
+            onPressed: _confirmDeleteAllMessages,
+            tooltip: 'Clear chat history',
+          ),
+        ],
       ),
       body: Column(
         children: [

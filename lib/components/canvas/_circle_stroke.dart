@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:fixnum/fixnum.dart';
+import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:one_dollar_unistroke_recognizer/one_dollar_unistroke_recognizer.dart';
 import 'package:perfect_freehand/perfect_freehand.dart';
@@ -70,7 +71,7 @@ class CircleStroke extends Stroke {
       'cy': center.dy,
       'r': radius,
       'pe': pressureEnabled,
-      'c': color.toARGB32(),
+      'c': color.value32bit,
     }..addAll(options.toJson());
   }
 

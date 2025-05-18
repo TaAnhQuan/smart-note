@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:saber/components/canvas/_asset_cache.dart';
@@ -183,12 +184,12 @@ class EditorPage extends Listenable implements HasSize {
   /// Inserts a stroke, while keeping the strokes sorted by
   /// pen type and color.
   void insertStroke(Stroke newStroke) {
-    int newStrokeColor = newStroke.color.toARGB32();
+    int newStrokeColor = newStroke.color.value32bit;
 
     int index = 0;
     for (final Stroke stroke in strokes) {
       int penTypeComparison = stroke.penType.compareTo(newStroke.penType);
-      int color = stroke.color.toARGB32();
+      int color = stroke.color.value32bit;
       if (penTypeComparison > 0) {
         break; // this stroke's pen type comes after the new stroke's pen type
       } else if (stroke.penType == (Highlighter).toString() &&
@@ -208,7 +209,7 @@ class EditorPage extends Listenable implements HasSize {
       int penTypeComparison = a.penType.compareTo(b.penType);
       if (penTypeComparison != 0) return penTypeComparison;
       if (a.penType != (Highlighter).toString()) return 0;
-      return a.color.toARGB32().compareTo(b.color.toARGB32());
+      return a.color.value32bit.compareTo(b.color.value32bit);
     });
   }
 

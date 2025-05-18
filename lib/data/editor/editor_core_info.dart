@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:archive/archive_io.dart';
 import 'package:bson/bson.dart';
 import 'package:fixnum/fixnum.dart';
+import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -477,7 +478,7 @@ class EditorCoreInfo {
     final json = {
       'v': sbnVersion,
       'ni': nextImageId,
-      'b': backgroundColor?.toARGB32(),
+      'b': backgroundColor?.value32bit,
       'p': backgroundPattern.name,
       'l': lineHeight,
       'lt': lineThickness,

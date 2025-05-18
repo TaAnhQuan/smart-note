@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:pdf/pdf.dart';
@@ -77,15 +78,15 @@ abstract class EditorExporter {
               child: pw.CustomPaint(
                 foregroundPainter: (PdfGraphics pdfGraphics, PdfPoint size) {
                   final backgroundColor = PdfColor.fromInt(
-                    coreInfo.backgroundColor?.toARGB32() ??
-                        InnerCanvas.defaultBackgroundColor.toARGB32(),
+                    coreInfo.backgroundColor?.value32bit ??
+                        InnerCanvas.defaultBackgroundColor.value32bit,
                   ).flatten();
 
                   final strokes = page.strokes
                       .where((stroke) => !_shouldRasterizeStroke(stroke));
                   for (final stroke in strokes) {
                     final strokeColor =
-                        PdfColor.fromInt(stroke.color.toARGB32())
+                        PdfColor.fromInt(stroke.color.value32bit)
                             .flatten(background: backgroundColor);
 
                     /// Whether we need to fill the shape, or draw its stroke

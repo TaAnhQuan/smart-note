@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:collapsible/collapsible.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
@@ -1037,7 +1038,7 @@ class EditorState extends State<Editor> {
       }
     }
 
-    final String newColorString = color.toARGB32().toString();
+    final String newColorString = color.value32bit.toString();
 
     // migrate from old pref format
     if (Prefs.recentColorsChronological.value.length !=
