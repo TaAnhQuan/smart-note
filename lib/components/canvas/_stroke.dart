@@ -17,12 +17,11 @@ import 'package:saber/data/tools/pen.dart';
 class Stroke {
   static final log = Logger('Stroke');
 
-  @visibleForTesting
   @protected
-  final List<PointVector> points = [];
+  final List<PointVector> _points = [];
 
-  bool get isEmpty => points.isEmpty;
-  int get length => points.length;
+  bool get isEmpty => _points.isEmpty;
+  int get length => _points.length;
 
   int pageIndex;
   HasSize page;
@@ -38,6 +37,7 @@ class Stroke {
   List<Offset>? _lowQualityPolygon, _highQualityPolygon;
   List<Offset> get lowQualityPolygon => _lowQualityPolygon ??= getPolygon(6);
   List<Offset> get highQualityPolygon => _highQualityPolygon ??= getPolygon(1);
+  List<PointVector> get points => _points;
 
   Path? _lowQualityPath, _highQualityPath;
   Path get lowQualityPath =>
@@ -47,7 +47,7 @@ class Stroke {
   void shift(Offset offset) {
     if (offset == Offset.zero) return;
 
-    points.shift(offset);
+    _points.shift(offset);
     _lowQualityPolygon?.shift(offset);
     _highQualityPolygon?.shift(offset);
     _lowQualityPath?.shift(offset);
@@ -107,16 +107,16 @@ class Stroke {
     }
 
     final offset = Offset(json['ox'] ?? 0, json['oy'] ?? 0);
-    final pointsJson = json['p'] as List<dynamic>;
-    final Iterable<PointVector> points;
+    final _pointsJson = json['p'] as List<dynamic>;
+    final Iterable<PointVector> _points;
     if (fileVersion >= 13) {
-      points = pointsJson.map((point) => PointExtensions.fromBsonBinary(
+      _points = _pointsJson.map((point) => PointExtensions.fromBsonBinary(
             json: point,
             offset: offset,
           ));
     } else {
       // ignore: deprecated_member_use_from_same_package
-      points = pointsJson.map((point) => PointExtensions.fromJson(
+      _points = _pointsJson.map((point) => PointExtensions.fromJson(
             json: Map<String, dynamic>.from(point),
             offset: offset,
           ));
@@ -129,13 +129,13 @@ class Stroke {
       pageIndex: pageIndex,
       page: page,
       penType: json['ty'] ?? (Pen).toString(),
-    )..points.addAll(points);
+    ).._points.addAll(_points);
   }
   Map<String, dynamic> toJson() {
     // these json keys should not be the same as the ones in [StrokeOptions.toJson]
     return {
       'shape': null,
-      'p': points
+      'p': _points
           .where((point) => point.isFinite)
           .map((PointVector point) => point.toBsonBinary())
           .toList(),
@@ -153,48 +153,48 @@ class Stroke {
       options.simulatePressure = false;
     }
 
-    points.add(PointVector(point.dx, point.dy, pressure));
+    _points.add(PointVector(point.dx, point.dy, pressure));
     markPolygonNeedsUpdating();
   }
 
-  void addPoints(List<Offset> points) {
-    for (final point in points) {
+  void addPoints(List<Offset> _points) {
+    for (final point in _points) {
       addPoint(point);
     }
   }
 
   void popFirstPoint() {
-    points.removeAt(0);
+    _points.removeAt(0);
     markPolygonNeedsUpdating();
   }
 
-  /// Points that are closer than this
+  /// _Points that are closer than this
   /// threshold multiplied by the stroke's size
   /// will be counted as duplicates.
-  static const double _optimisePointsThreshold = 0.1;
+  static const double _optimise_PointsThreshold = 0.1;
 
-  /// Removes points that are too close together. See [_optimisePointsThreshold].
+  /// Removes _points that are too close together. See [_optimise_PointsThreshold].
   ///
   /// This function is idempotent, so running it multiple times
   /// will not change the result.
   ///
   /// This function does not change [_polygonNeedsUpdating].
-  void optimisePoints({double thresholdMultiplier = _optimisePointsThreshold}) {
-    if (points.length <= 3) return;
+  void optimisePoints({double thresholdMultiplier = _optimise_PointsThreshold}) {
+    if (_points.length <= 3) return;
 
     final minDistance = options.size * thresholdMultiplier;
 
-    // Remove points with null pressure because they were duplicates
-    points.removeWhere((point) => point.pressure == null);
+    // Remove _points with null pressure because they were duplicates
+    _points.removeWhere((point) => point.pressure == null);
 
-    for (int i = 1; i < points.length - 1; i++) {
-      final point = points[i];
-      final prev = points[i - 1];
-      final next = points[i + 1];
+    for (int i = 1; i < _points.length - 1; i++) {
+      final point = _points[i];
+      final prev = _points[i - 1];
+      final next = _points[i + 1];
 
       if (prev.distanceSquaredTo(point) < minDistance * minDistance &&
           point.distanceSquaredTo(next) < minDistance * minDistance) {
-        points.removeAt(i);
+        _points.removeAt(i);
         i--;
       }
     }
@@ -209,7 +209,7 @@ class Stroke {
         N <= 1 && options.simulatePressure && options.isComplete;
 
     final polygon = getStroke(
-      skipPoints(points, N),
+      skip_Points(_points, N),
       options: options,
       rememberSimulatedPressure: rememberSimulatedPressure,
     );
@@ -217,7 +217,7 @@ class Stroke {
     if (rememberSimulatedPressure) {
       // Ensure we don't simulate pressure again
       options.simulatePressure = false;
-      // Remove points that are too close together
+      // Remove _points that are too close together
       optimisePoints();
     }
 
@@ -227,7 +227,7 @@ class Stroke {
   /// Returns a [Path] that represents the stroke.
   ///
   /// If [smooth] is true, and the stroke is complete,
-  /// the path will be a smooth curve between the points in [polygon].
+  /// the path will be a smooth curve between the _points in [polygon].
   ///
   /// Otherwise, the path will use straight lines between each point
   /// in [polygon] for performance.
@@ -240,13 +240,13 @@ class Stroke {
     return Path()..addPolygon(polygon, true);
   }
 
-  /// Returns a list with every Nth point in [points].
-  static List<PointVector> skipPoints(List<PointVector> points, int N) {
-    if (N == 1) return points;
-    if (points.length < N * 4) return points;
+  /// Returns a list with every Nth point in [_points].
+  static List<PointVector> skip_Points(List<PointVector> _points, int N) {
+    if (N == 1) return _points;
+    if (_points.length < N * 4) return _points;
     return [
-      for (int i = 0; i < points.length; i += N) points[i],
-      if (points.length % N != 0) points.last,
+      for (int i = 0; i < _points.length; i += N) _points[i],
+      if (_points.length % N != 0) _points.last,
     ];
   }
 
@@ -268,20 +268,20 @@ class Stroke {
           '${page.size.height - point.dy}';
     }
 
-    // Remove NaN points, and convert to SVG coordinates
-    final svgPoints =
+    // Remove NaN _points, and convert to SVG coordinates
+    final svg_Points =
         highQualityPolygon.where((offset) => offset.isFinite).map(toSvgPoint);
 
-    return svgPoints.isNotEmpty ? 'M${svgPoints.join('L')}' : '';
+    return svg_Points.isNotEmpty ? 'M${svg_Points.join('L')}' : '';
   }
 
   double get maxY {
-    return points.isEmpty ? 0 : points.map((point) => point.y).reduce(max);
+    return _points.isEmpty ? 0 : _points.map((point) => point.y).reduce(max);
   }
 
   RecognizedUnistroke? detectShape() {
-    if (points.length < 3) return null;
-    return recognizeUnistroke(points);
+    if (_points.length < 3) return null;
+    return recognizeUnistroke(_points);
   }
 
   /// Uses the one_dollar_unistroke_recognizer package
@@ -290,10 +290,10 @@ class Stroke {
   /// In addition, the line must be sufficiently long
   /// relative to [options.size].
   bool isStraightLine([int minLength = 5]) {
-    if (points.length < 3) return false;
+    if (_points.length < 3) return false;
 
     final recognized = recognizeUnistroke(
-      points,
+      _points,
       overrideReferenceUnistrokes: default$1Unistrokes
           .where((unistroke) => unistroke.name == DefaultUnistrokeNames.line)
           .toList(),
@@ -302,32 +302,32 @@ class Stroke {
     assert(recognized.name == DefaultUnistrokeNames.line);
     if (recognized.score < 0.7) return false;
 
-    final sqrLength = points.first.distanceSquaredTo(points.last);
+    final sqrLength = _points.first.distanceSquaredTo(_points.last);
     final sqrMinLength = minLength * minLength * options.size * options.size;
     return sqrLength >= sqrMinLength;
   }
 
-  /// Replaces the points in this stroke with a straight line.
+  /// Replaces the _points in this stroke with a straight line.
   ///
   /// If the resulting line is close to horizontal or vertical,
   /// it will be snapped to be exactly horizontal or vertical.
   void convertToLine() {
-    assert(points.length >= 2);
+    assert(_points.length >= 2);
 
     // Use the average pressure
-    final pressure = points.map((point) => point.pressure ?? 0.5).average;
+    final pressure = _points.map((point) => point.pressure ?? 0.5).average;
     var firstPoint =
-        PointVector.fromOffset(offset: points.first, pressure: pressure);
+        PointVector.fromOffset(offset: _points.first, pressure: pressure);
     var lastPoint =
-        PointVector.fromOffset(offset: points.last, pressure: pressure);
+        PointVector.fromOffset(offset: _points.last, pressure: pressure);
 
     // Snap to the horizontal or vertical axis
     (firstPoint, lastPoint) = snapLine(firstPoint, lastPoint);
 
-    points.clear();
-    points.add(firstPoint);
-    points.add(lastPoint);
-    points.add(lastPoint);
+    _points.clear();
+    _points.add(firstPoint);
+    _points.add(lastPoint);
+    _points.add(lastPoint);
     options.isComplete = true;
     options.start.taperEnabled = false;
     options.end.taperEnabled = false;
@@ -368,5 +368,5 @@ class Stroke {
         pageIndex: pageIndex,
         page: page,
         penType: penType,
-      )..points.addAll(points);
+      ).._points.addAll(_points);
 }

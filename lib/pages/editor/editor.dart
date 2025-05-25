@@ -111,6 +111,7 @@ class EditorState extends State<Editor> {
   late bool _dragging;
   late double _ratio;
   final dividerThickness = 8.0;
+  String _currentPdfPath = '';
 
   late EditorCoreInfo coreInfo = EditorCoreInfo(filePath: '');
 
@@ -216,14 +217,18 @@ class EditorState extends State<Editor> {
     }
 
     await _initStrokes();
+    print("Finish init stroke");
 
     if (widget.pdfPath != null) {
+      print("PDF file is not null: ${widget.pdfPath}");
       await importPdfFromFilePath(widget.pdfPath!);
     }
   }
 
   Future _initStrokes() async {
     coreInfo = await EditorCoreInfo.loadFromFilePath(coreInfo.filePath);
+    _currentPdfPath = coreInfo.filePath;
+    print("Current file path $_currentPdfPath");
     if (coreInfo.readOnly) {
       log.info('Loaded file as read-only');
     }
@@ -1222,7 +1227,8 @@ class EditorState extends State<Editor> {
         width: pageSize.width,
         height: pageSize.height,
       );
-      page.backgroundImage = PdfEditorImage(
+      print("Import PDF in editor");
+      final pdfEditor = PdfEditorImage(
         id: coreInfo.nextImageId++,
         pdfBytes: pdfBytes,
         pdfFile: pdfFile,
@@ -1236,6 +1242,7 @@ class EditorState extends State<Editor> {
         onLoad: () => setState(() {}),
         assetCache: coreInfo.assetCache,
       );
+      page.backgroundImage = pdfEditor;
       coreInfo.pages.add(page);
       history.recordChange(EditorHistoryItem(
         type: EditorHistoryItemType.insertPage,
@@ -1773,7 +1780,13 @@ class EditorState extends State<Editor> {
                       duration: Duration(milliseconds: 300),
                       width: widget.splitAxis == Axis.horizontal ? secondSize : null,
                       height: widget.splitAxis == Axis.vertical ? secondSize : null,
-                      child: _isSplit ? ChatScreen(): null,
+                      child: _isSplit ? ChatScreen(
+                        pages: coreInfo.pages,
+                        currentPageIndex: currentPageIndex,
+                          pdfEditorImage: coreInfo.pages[currentPageIndex].backgroundImage is PdfEditorImage
+                              ? coreInfo.pages[currentPageIndex].backgroundImage as PdfEditorImage
+                              : null,
+                      ) : null,
                     ),
                   ),
                 ] :

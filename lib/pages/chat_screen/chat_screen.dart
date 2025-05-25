@@ -1,12 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:objectbox/objectbox.dart';
+import 'package:read_pdf_text/read_pdf_text.dart';
 import 'package:saber/components/asr/stt.dart';
-import 'package:saber/components/llm/llm.dart';
+import 'package:saber/components/canvas/image/editor_image.dart';
+import 'package:saber/data/editor/page.dart';
+import 'package:saber/data/llm/llm.dart';
 import 'package:saber/data/message/chat_message.dart';
 import 'package:saber/data/objectbox.g.dart';
 
-
 class ChatScreen extends StatefulWidget {
+  final List<EditorPage> pages;
+  final int currentPageIndex;
+  final PdfEditorImage? pdfEditorImage;
+
+  const ChatScreen({
+    super.key,
+    required this.pages,
+    required this.currentPageIndex,
+    required this.pdfEditorImage
+  });
+
   @override
   _ChatScreenState createState() => _ChatScreenState();
 }
@@ -22,7 +34,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final SpeechToTextService _speechToTextService = SpeechToTextService();
   final LLMService _llmService = LLMService();
 
-  bool _isRecording = false;
+  final bool _isRecording = false;
 
   @override
   void initState(){
@@ -61,19 +73,46 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
+  String _extractFinalAnswer(String response) {
+    final conclusionMarker = '**Conclusion:**';
+    final conclusionIndex = response.indexOf(conclusionMarker);
+    if (conclusionIndex != -1) {
+      String afterConclusion = response.substring(conclusionIndex + conclusionMarker.length).trim();
+      List<String> paragraphs = afterConclusion.split(RegExp(r'\n\s*\n'));
+      if (paragraphs.isNotEmpty) {
+        return paragraphs.first.trim();
+      }
+    }
+    return response;
+  }
+
+  Future<String> _extractPdfText() async {
+    try {
+      final text = widget.pdfEditorImage!.extractPageText().toString();
+      print("Extract text form pdf: $text");
+      return text;
+    } catch (e) {
+      String error = 'Error extracting text: $e';
+      print(error);
+      return '';
+    }
+  }
+
   Future<void> _sendMessage() async {
     final userMessageText = _controller.text.trim();
     if (userMessageText.isEmpty) return;
 
-    print("Send message to LLM");
+    String pdfText = await _extractPdfText();
 
-    // 1) Optimistically show the user’s message
+    print('Send message to LLM');
+
+    // 1) Optimistically show the user's message
     setState(() {
       final userMessage = ChatMessage(text: userMessageText, isUser: true);
 
       _messages.add(ChatMessage(text: userMessageText, isUser: true));
       _messageBox.put(userMessage);
-      // Optionally show a “typing…” or spinner message until the real reply arrives
+      // Optionally show a "typing…" or spinner message until the real reply arrives
       _messages.add(ChatMessage(text: '...', isUser: false, id: 0));
     });
 
@@ -82,18 +121,20 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollToBottom();
 
     try {
-      // 2) Actually wait for the network call to finish
-      await _llmService.sendToGemini(userMessageText);
+      final currentPageStrokes = widget.pages[widget.currentPageIndex].strokes;
 
-      // 3) Grab the real response
-      final response = _llmService.llmResponse;
+      print("pdf text: ${pdfText}");
+
+      await _llmService.sendToGemini(userMessageText + " " + pdfText, currentPageStrokes);
+
+      final response = _extractFinalAnswer(_llmService.llmResponse);
+      print("LLM response: ${response}");
+      print("Message: ${userMessageText + " " + pdfText}");
 
       setState(() {
-        // remove the loading placeholder
         _messages.removeLast();
 
         final botMessage = ChatMessage(text: response, isUser: false);
-        // insert the actual bot response
         _messages.add(ChatMessage(text: response, isUser: false));
         _messageBox.put(botMessage);
       });

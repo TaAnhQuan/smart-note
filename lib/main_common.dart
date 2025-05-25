@@ -16,6 +16,7 @@ import 'package:saber/components/canvas/pencil_shader.dart';
 import 'package:saber/components/theming/dynamic_material_app.dart';
 import 'package:saber/data/editor/pencil_sound.dart';
 import 'package:saber/data/file_manager/file_manager.dart';
+import 'package:saber/data/llm/hand_writing_recognize.dart';
 import 'package:saber/data/nextcloud/nc_http_overrides.dart';
 import 'package:saber/data/nextcloud/saber_syncer.dart';
 import 'package:saber/data/prefs.dart';
@@ -111,6 +112,8 @@ Future<void> main(
   runApp(TranslationProvider(child: const App()));
   startSyncAfterLoaded();
   setupBackgroundSync();
+
+  await HandwritingRecognition().initialize();
 }
 
 void startSyncAfterLoaded() async {

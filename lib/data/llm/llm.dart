@@ -3,15 +3,18 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:saber/components/asr/tts.dart';
+import 'package:saber/components/canvas/_stroke.dart';
+import 'package:saber/data/llm/hand_writing_recognize.dart';
 
 class LLMService with ChangeNotifier {
   String llmResponse = '';
   final String _GEMINI_API_KEY = dotenv.env['GEMINI_API_KEY'] ?? 'default_key';
 
-  // final HandwritingRecognitionService _handwritingRecognitionService = HandwritingRecognitionService();
-  // final TtsService _ttsService = TtsService();
+  final HandwritingRecognition _handwritingRecognitionService = HandwritingRecognition();
+  final TtsService _ttsService = TtsService();
 
-  Future<void> sendToGemini(String inputText) async {
+  Future<void> sendToGemini(String inputText, List<Stroke> strokes) async {
     try {
       notifyListeners();
 
@@ -19,17 +22,19 @@ class LLMService with ChangeNotifier {
         throw 'Missing Gemini API Key';
       }
 
-      // await _handwritingRecognitionService.recognizeHandWriting(_model.strokes);
-      // final handWritingToText = _handwritingRecognitionService.recognizedText;
+      // Recognize handwriting from strokes
+      await _handwritingRecognitionService.recognizeHandWriting(strokes);
+      final handWritingToText = _handwritingRecognitionService.recognizedText.value;
+      
+      print("Inside controller, hand writing to text: $handWritingToText");
 
-      // print("Inside controller, hand writing to text: $handWritingToText");
       // Construct payload
       final payload = jsonEncode({
         "contents": [
           {
             "parts": [
-              {"text": "Analyze this text in detail and solve the problem in the text."},
-              {"text": inputText}
+              {"text": inputText},
+              {"text": handWritingToText}
             ]
           }
         ]
