@@ -24,7 +24,7 @@ class HandwritingRecognition {
   }
 
   Future<void> _ensureModelDownloaded() async {
-    print("Downloading the model");
+    // debugPrint("Downloading the model");
     modelStatusMessage.value = 'Downloading model...';
     try {
       if (!await _modelHandWritingManager.isModelDownloaded(_languageCode)) {
@@ -34,10 +34,10 @@ class HandwritingRecognition {
         );
       }
       modelStatusMessage.value = 'Model ready';
-      print("Download finish");
+      // debugPrint("Download finish");
     } catch (e) {
       modelStatusMessage.value = 'Model download failed: $e';
-      print(modelStatusMessage.value);
+      // debugPrint(modelStatusMessage.value);
       rethrow;
     }
   }
@@ -67,13 +67,12 @@ class HandwritingRecognition {
   }
 
   Future<void> recognizeHandWriting(List<canvas.Stroke> userStrokes) async{
-    print('Recognize hand writing');
     if (isBusy.value) {
-      print('Recognizer is busy');
+      // debugPrint('Recognizer is busy');
       return;
     }
     if (userStrokes.isEmpty) {
-      print('No ink to recognize');
+      // debugPrint('No ink to recognize');
       return;
     }
 
@@ -88,13 +87,11 @@ class HandwritingRecognition {
 
       if (candidates.isNotEmpty){
         recognizedText.value = candidates.first.text;
-        print('Recognition successful: ${recognizedText.value}');
       } else {
-        recognizedText.value = "No recognition result";
-        print('Recognition returned no candidates');
+        recognizedText.value = 'No recognition result';
       }
     } catch (e) {
-      print('Error recognizing ink: $e');
+      debugPrint('Error recognizing ink: $e');
       recognizedText.value = 'Recognition failed';
     } finally {
       isBusy.value = false;

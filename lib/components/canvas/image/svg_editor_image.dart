@@ -128,6 +128,26 @@ class SvgEditorImage extends EditorImage {
             'SvgEditorImage.toJson: svgLoader must be a SvgStringLoader or SvgFileLoader'),
       };
 
+  Future<String?> getSvgStringContent() async {
+    if (!loadedIn && _firstLoadStatus?.isCompleted != true){
+      await firstLoad();
+    }
+
+    final svgData = _extractSvg();
+
+    if (svgData.string != null){
+      return svgData.string;
+    }else if (svgData.file != null){
+      try{
+        return await svgData.file!.readAsString();
+      } catch (e){
+        log.severe('Failed to read SVG file: ${svgData.file!.path}');
+        return null;
+      }
+    }
+    return null;
+  }
+
   @override
   Future<void> firstLoad() async {
     if (srcRect.shortestSide == 0 || dstRect.shortestSide == 0) {

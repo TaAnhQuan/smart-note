@@ -1,4 +1,4 @@
-import 'dart:async';
+import'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -217,10 +217,8 @@ class EditorState extends State<Editor> {
     }
 
     await _initStrokes();
-    print("Finish init stroke");
 
     if (widget.pdfPath != null) {
-      print("PDF file is not null: ${widget.pdfPath}");
       await importPdfFromFilePath(widget.pdfPath!);
     }
   }
@@ -228,7 +226,6 @@ class EditorState extends State<Editor> {
   Future _initStrokes() async {
     coreInfo = await EditorCoreInfo.loadFromFilePath(coreInfo.filePath);
     _currentPdfPath = coreInfo.filePath;
-    print("Current file path $_currentPdfPath");
     if (coreInfo.readOnly) {
       log.info('Loaded file as read-only');
     }
@@ -1227,7 +1224,6 @@ class EditorState extends State<Editor> {
         width: pageSize.width,
         height: pageSize.height,
       );
-      print("Import PDF in editor");
       final pdfEditor = PdfEditorImage(
         id: coreInfo.nextImageId++,
         pdfBytes: pdfBytes,
@@ -1783,9 +1779,7 @@ class EditorState extends State<Editor> {
                       child: _isSplit ? ChatScreen(
                         pages: coreInfo.pages,
                         currentPageIndex: currentPageIndex,
-                          pdfEditorImage: coreInfo.pages[currentPageIndex].backgroundImage is PdfEditorImage
-                              ? coreInfo.pages[currentPageIndex].backgroundImage as PdfEditorImage
-                              : null,
+                          backgroundImage: coreInfo.pages[currentPageIndex].backgroundImage,
                       ) : null,
                     ),
                   ),

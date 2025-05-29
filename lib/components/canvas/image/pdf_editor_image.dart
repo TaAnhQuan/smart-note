@@ -155,38 +155,6 @@ class PdfEditorImage extends EditorImage {
     return completer.future;
   }
 
-  Future<String> extractPageText() async {
-    try {
-      await loadIn();
-      final bytes = pdfBytes ?? await pdfFile!.readAsBytes();
-      final document = await PdfDocument.openData(bytes);
-      final StringBuffer extractedText = StringBuffer();
-      final pageCount = document.pages.length;
-
-      for (int pageIndex = 1; pageIndex <= pageCount; pageIndex++) {
-        try {
-          final page = document.pages.elementAt(pageIndex);
-          final pageText = await page.loadText();
-
-          if (pageIndex > 1) {
-            extractedText.writeln('\n-- Page $pageIndex --\n');
-          }
-          extractedText.writeln(pageText.fullText);
-        } catch (pageError) {
-          print('Error extracting text from page $pageIndex: $pageError');
-          extractedText.writeln('\n[Error reading page $pageIndex]\n');
-        }
-      }
-
-      document.dispose();
-
-      return extractedText.toString().trim();
-    } catch (e) {
-      print('PDF text extraction error $e');
-      return 'Error: Unable to extract text from PDF -$e';
-    }
-  }
-
   @override
   Widget buildImageWidget({
     required BuildContext context,

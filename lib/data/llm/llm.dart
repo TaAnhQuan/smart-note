@@ -25,8 +25,6 @@ class LLMService with ChangeNotifier {
       // Recognize handwriting from strokes
       await _handwritingRecognitionService.recognizeHandWriting(strokes);
       final handWritingToText = _handwritingRecognitionService.recognizedText.value;
-      
-      print("Inside controller, hand writing to text: $handWritingToText");
 
       // Construct payload
       final payload = jsonEncode({
@@ -51,7 +49,6 @@ class LLMService with ChangeNotifier {
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
-        print(jsonResponse);
 
         final candidates = jsonResponse['candidates'];
 
