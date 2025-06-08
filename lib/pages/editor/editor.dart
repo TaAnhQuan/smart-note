@@ -112,8 +112,8 @@ class EditorState extends State<Editor> {
   late bool _dragging;
   late double _ratio;
   final dividerThickness = 8.0;
-  String _currentPdfPath = '';
   bool _isGestureSearchEnabled = false;
+  Uint8List? _searchImageData;
 
   late EditorCoreInfo coreInfo = EditorCoreInfo(filePath: '');
 
@@ -227,7 +227,6 @@ class EditorState extends State<Editor> {
 
   Future _initStrokes() async {
     coreInfo = await EditorCoreInfo.loadFromFilePath(coreInfo.filePath);
-    _currentPdfPath = coreInfo.filePath;
     if (coreInfo.readOnly) {
       log.info('Loaded file as read-only');
     }
@@ -1398,6 +1397,7 @@ class EditorState extends State<Editor> {
       child: canvas,
       onSearch: (Uint8List imageData, Rect searchArea) {
         setState(() {
+          _searchImageData = imageData;
           _isGestureSearchEnabled = false;
           _isSplit = true;
         });
@@ -1814,6 +1814,7 @@ class EditorState extends State<Editor> {
                         pages: coreInfo.pages,
                         currentPageIndex: currentPageIndex,
                           backgroundImage: coreInfo.pages[currentPageIndex].backgroundImage,
+                        selectedImageData: _searchImageData,
                       ) : null,
                     ),
                   ),

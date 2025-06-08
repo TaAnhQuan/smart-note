@@ -17,12 +17,14 @@ class ChatScreen extends StatefulWidget {
   final List<EditorPage> pages;
   final int currentPageIndex;
   final EditorImage? backgroundImage;
+  final Uint8List? selectedImageData;
 
   const ChatScreen({
     super.key,
     required this.pages,
     required this.currentPageIndex,
-    required this.backgroundImage
+    required this.backgroundImage,
+    this.selectedImageData,
   });
 
   @override
@@ -264,7 +266,7 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       final currentPageStrokes = widget.pages[widget.currentPageIndex].strokes;
 
-      await _llmService.sendToGemini(userMessageText + " " + pdfText, currentPageStrokes);
+      await _llmService.sendToGemini(userMessageText, widget.selectedImageData, currentPageStrokes);
 
       final response = _extractFinalAnswer(_llmService.llmResponse);
 

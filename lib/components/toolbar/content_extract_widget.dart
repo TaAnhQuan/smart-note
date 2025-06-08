@@ -181,13 +181,6 @@ class _ContentExtractWidgetState extends State<ContentExtractWidget> with Ticker
     if (_selectionRect == null || _selectedImageData == null) return;
 
     widget.onToggleSplit?.call();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Search results opened in Chat Screen'),
-        duration: Duration(seconds: 2),
-      ),
-    );
   }
 
   void _showErrorMessage() {

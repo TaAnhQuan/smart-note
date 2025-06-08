@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
@@ -14,7 +15,8 @@ class LLMService with ChangeNotifier {
   final HandwritingRecognition _handwritingRecognitionService = HandwritingRecognition();
   final TtsService _ttsService = TtsService();
 
-  Future<void> sendToGemini(String inputText, List<Stroke> strokes) async {
+  Future<void> sendToGemini(String inputText, Uint8List? selectImage, List<Stroke> strokes) async {
+    final selectImageB64 = base64Encode(selectImage!);
     try {
       notifyListeners();
 
@@ -26,13 +28,19 @@ class LLMService with ChangeNotifier {
       await _handwritingRecognitionService.recognizeHandWriting(strokes);
       final handWritingToText = _handwritingRecognitionService.recognizedText.value;
 
-      // Construct payload
-      final payload = jsonEncode({
-        "contents": [
+      final String payload;
+
+      payload = jsonEncode({
+        'contents': [
           {
-            "parts": [
-              {"text": inputText},
-              {"text": handWritingToText}
+            'parts': [
+              {'text': '$inputText $handWritingToText'},
+              {
+                'inline_data': {
+                  'mime_type': 'image/png',
+                  'data': selectImageB64,
+                }
+              },
             ]
           }
         ]
@@ -41,7 +49,7 @@ class LLMService with ChangeNotifier {
       final response = await http
           .post(
         Uri.parse(
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$_GEMINI_API_KEY"),
+            'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$_GEMINI_API_KEY'),
         headers: {'Content-Type': 'application/json'},
         body: payload,
       )
