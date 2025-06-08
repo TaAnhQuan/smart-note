@@ -27,6 +27,7 @@ import 'package:saber/components/theming/dynamic_material_app.dart';
 import 'package:saber/components/toolbar/color_bar.dart';
 import 'package:saber/components/toolbar/editor_bottom_sheet.dart';
 import 'package:saber/components/toolbar/editor_page_manager.dart';
+import 'package:saber/components/toolbar/content_extract_widget.dart';
 import 'package:saber/components/toolbar/toolbar.dart';
 import 'package:saber/data/editor/_color_change.dart';
 import 'package:saber/data/editor/editor_core_info.dart';
@@ -112,6 +113,7 @@ class EditorState extends State<Editor> {
   late double _ratio;
   final dividerThickness = 8.0;
   String _currentPdfPath = '';
+  bool _isGestureSearchEnabled = false;
 
   late EditorCoreInfo coreInfo = EditorCoreInfo(filePath: '');
 
@@ -520,6 +522,7 @@ class EditorState extends State<Editor> {
   int? dragPageIndex;
   double? currentPressure;
   bool isDrawGesture(ScaleStartDetails details) {
+    if (_isGestureSearchEnabled) return false;
     if (coreInfo.readOnly) return false;
 
     CanvasImage.activeListener
@@ -1390,6 +1393,22 @@ class EditorState extends State<Editor> {
       transformationController: _transformationController,
     );
 
+  final Widget canvasWithGestureSearch = ContentExtractWidget(
+      isGestureSearchEnabled: _isGestureSearchEnabled,
+      child: canvas,
+      onSearch: (Uint8List imageData, Rect searchArea) {
+        setState(() {
+          _isGestureSearchEnabled = false;
+          _isSplit = true;
+        });
+      },
+      onToggleSplit: () {
+        setState(() {
+          _isSplit = true;
+        });
+      },
+    );
+
     final Widget? readonlyBanner = coreInfo.readOnlyBecauseOfVersion
         ? Collapsible(
             collapsed:
@@ -1418,6 +1437,7 @@ class EditorState extends State<Editor> {
         child: Toolbar(
           readOnly: coreInfo.readOnly,
           setTool: (tool) {
+            if (_isGestureSearchEnabled) return;
             setState(() {
               if (tool is Eraser) {
                 // setTool(Eraser) is called to toggle eraser
@@ -1444,6 +1464,7 @@ class EditorState extends State<Editor> {
           },
           currentTool: currentTool,
           duplicateSelection: () {
+            if (_isGestureSearchEnabled) return;
             final select = currentTool as Select;
             if (!select.doneSelecting) return;
 
@@ -1483,6 +1504,7 @@ class EditorState extends State<Editor> {
             });
           },
           deleteSelection: () {
+            if (_isGestureSearchEnabled) return;
             final select = currentTool as Select;
             if (!select.doneSelecting) {
               return;
@@ -1512,6 +1534,7 @@ class EditorState extends State<Editor> {
             });
           },
           setColor: (color) {
+            if (_isGestureSearchEnabled) return;
             setState(() {
               updateColorBar(color);
 
@@ -1548,6 +1571,7 @@ class EditorState extends State<Editor> {
           quillFocus: quillFocus,
           textEditing: currentTool == Tool.textEditing,
           toggleTextEditing: () => setState(() {
+            if (_isGestureSearchEnabled) return;
             if (currentTool == Tool.textEditing) {
               currentTool = Pen.currentPen;
               for (EditorPage page in coreInfo.pages) {
@@ -1567,6 +1591,7 @@ class EditorState extends State<Editor> {
           redo: redo,
           isRedoPossible: history.canRedo,
           toggleFingerDrawing: () {
+            if (_isGestureSearchEnabled) return;
             setState(() {
               Prefs.editorFingerDrawing.value =
                   !Prefs.editorFingerDrawing.value;
@@ -1593,7 +1618,7 @@ class EditorState extends State<Editor> {
           Expanded(
               child: Column(
             children: [
-              Expanded(child: canvas),
+              Expanded(child: canvasWithGestureSearch),
               if (readonlyBanner != null) readonlyBanner,
             ],
           )),
@@ -1607,7 +1632,7 @@ class EditorState extends State<Editor> {
                 : VerticalDirection.down,
         children: [
           toolbar,
-          Expanded(child: canvas),
+          Expanded(child: canvasWithGestureSearch),
           if (readonlyBanner != null) readonlyBanner,
         ],
       );
@@ -1669,6 +1694,15 @@ class EditorState extends State<Editor> {
                   triggerSave: saveToFile,
                 ),
                 actions: [
+                  IconButton(
+                    icon: Icon(_isGestureSearchEnabled ? Icons.close : Icons.search),
+                    onPressed: () {
+                      setState(() {
+                        _isGestureSearchEnabled = !_isGestureSearchEnabled;
+                      });
+                    },
+                    tooltip: _isGestureSearchEnabled ? 'Disable Gesture Search' : 'Enable Gesture Search',
+                  ),
                   IconButton(
                     icon: const AdaptiveIcon(
                         icon: Icons.messenger,
