@@ -6,7 +6,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:saber/components/asr/tts.dart';
 import 'package:saber/components/canvas/_stroke.dart';
-import 'package:saber/data/llm/hand_writing_recognize.dart';
+import 'package:saber/components/llm/hand_writing_recognize.dart';
 
 class LLMService with ChangeNotifier {
   String llmResponse = '';

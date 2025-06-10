@@ -1,13 +1,12 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_ml_kit/google_ml_kit.dart' as ml_kit;
 import 'package:pdfrx/pdfrx.dart' as pdfrx;
 import 'package:saber/components/asr/stt.dart';
 import 'package:saber/components/canvas/image/editor_image.dart';
 import 'package:saber/data/editor/page.dart';
-import 'package:saber/data/llm/llm.dart';
+import 'package:saber/components/llm/llm.dart';
 import 'package:saber/data/message/chat_message.dart';
 import 'package:saber/data/objectbox.g.dart';
 import 'package:xml/xml.dart';
@@ -43,7 +42,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final LLMService _llmService = LLMService();
   final ml_kit.TextRecognizer _textRecognizer = ml_kit.TextRecognizer(script: ml_kit.TextRecognitionScript.latin);
 
-  final bool _isRecording = false;
+  bool _isRecording = false;
 
   @override
   void initState(){
@@ -191,7 +190,6 @@ class _ChatScreenState extends State<ChatScreen> {
       debugPrint('Error processing PDF page $pageIndex: $e');
       return null;
     } finally {
-      // Always dispose of the document to prevent memory leaks
       document?.dispose();
     }
   }
@@ -287,7 +285,6 @@ class _ChatScreenState extends State<ChatScreen> {
       });
     }
 
-    // scroll again now that bot message is in
     _scrollToBottom();
   }
 
@@ -379,15 +376,12 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _deleteAllChatHistory() async {
-    // Remove from ObjectBox
     _messageBox.removeAll();
 
-    // Clear local messages
     setState(() {
       _messages.clear();
     });
 
-    // Optional: Show confirmation snackbar
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('All chat history cleared')),
     );
@@ -424,8 +418,13 @@ class _ChatScreenState extends State<ChatScreen> {
                 IconButton(
                   icon: Icon(Icons.mic),
                   color: _isRecording ? Colors.red : Colors.grey,
-                  onPressed: (){
-                    _speechToTextService.listening;
+                  onPressed: () async {
+                    setState(() {
+                      _isRecording = !_isRecording;
+                    });
+                    if (_isRecording == true){
+                      await _speechToTextService.toggleListening();
+                    }
                   },
                 ),
                 Expanded(
