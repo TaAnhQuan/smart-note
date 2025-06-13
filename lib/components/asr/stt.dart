@@ -7,9 +7,10 @@ typedef SpeechResultCallback = void Function(String recognizedWords);
 class SpeechToTextService extends ChangeNotifier{
 
   bool available = false;
-  bool listening = false;
+  bool _listening = false;
   String lastWords = '';
 
+  bool get listening => _listening;
 
   final stt.SpeechToText _speech = stt.SpeechToText();
 
@@ -33,15 +34,15 @@ class SpeechToTextService extends ChangeNotifier{
 
   Future<void> toggleListening() async {
     if (!available) return;
-    if (listening) {
+    if (_listening) {
       await _stopListening();
-      listening = false;
+      _listening = false;
     } else {
       await _startListening((recognizedWords) {
         lastWords = recognizedWords;
         notifyListeners();
       });
-      listening = true;
+      _listening = true;
     }
     notifyListeners();
   }
@@ -56,13 +57,13 @@ class SpeechToTextService extends ChangeNotifier{
         onResult(result.recognizedWords);
       },
       localeId: localeId,
-      partialResults: partialResults,
+      listenOptions: stt.SpeechListenOptions(
+        partialResults: partialResults
+      ),
     );
   }
 
   Future<void> _stopListening() async {
     await _speech.stop();
   }
-
-  bool get isListening => _speech.isListening;
 }
