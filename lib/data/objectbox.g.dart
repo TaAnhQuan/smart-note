@@ -13,41 +13,84 @@ import 'package:objectbox/internal.dart'
     as obx_int; // generated code can access "internal" functionality
 import 'package:objectbox/objectbox.dart' as obx;
 import 'package:objectbox_flutter_libs/objectbox_flutter_libs.dart';
-
-import 'message/chat_message.dart';
+import 'package:saber/data/message/chat_message.dart';
 
 export 'package:objectbox/objectbox.dart'; // so that callers only have to import this file
 
 final _entities = <obx_int.ModelEntity>[
   obx_int.ModelEntity(
-      id: const obx_int.IdUid(1, 5351178910916169338),
+      id: const obx_int.IdUid(1, 8102222585235140055),
       name: 'ChatMessage',
-      lastPropertyId: const obx_int.IdUid(4, 7007827801390871104),
+      lastPropertyId: const obx_int.IdUid(6, 7049840092081284253),
       flags: 0,
       properties: <obx_int.ModelProperty>[
         obx_int.ModelProperty(
-            id: const obx_int.IdUid(1, 1284676532769200580),
+            id: const obx_int.IdUid(1, 4041783818976058394),
             name: 'id',
             type: 6,
             flags: 1),
         obx_int.ModelProperty(
-            id: const obx_int.IdUid(2, 5425485892341831608),
+            id: const obx_int.IdUid(2, 4739886741642924537),
             name: 'text',
             type: 9,
             flags: 0),
         obx_int.ModelProperty(
-            id: const obx_int.IdUid(3, 2158682177251918228),
+            id: const obx_int.IdUid(3, 4007956480101575122),
             name: 'isUser',
             type: 1,
             flags: 0),
         obx_int.ModelProperty(
-            id: const obx_int.IdUid(4, 7007827801390871104),
+            id: const obx_int.IdUid(4, 7802172268412385950),
             name: 'timestamp',
+            type: 10,
+            flags: 0),
+        obx_int.ModelProperty(
+            id: const obx_int.IdUid(5, 5046878483804748976),
+            name: 'sessionId',
+            type: 11,
+            flags: 520,
+            indexId: const obx_int.IdUid(1, 3244718780140911478),
+            relationTarget: 'ChatSession'),
+        obx_int.ModelProperty(
+            id: const obx_int.IdUid(6, 7049840092081284253),
+            name: 'image',
+            type: 23,
+            flags: 0)
+      ],
+      relations: <obx_int.ModelRelation>[],
+      backlinks: <obx_int.ModelBacklink>[]),
+  obx_int.ModelEntity(
+      id: const obx_int.IdUid(2, 1035596209724151894),
+      name: 'ChatSession',
+      lastPropertyId: const obx_int.IdUid(4, 1334417023091463963),
+      flags: 0,
+      properties: <obx_int.ModelProperty>[
+        obx_int.ModelProperty(
+            id: const obx_int.IdUid(1, 5103748362560189788),
+            name: 'id',
+            type: 6,
+            flags: 1),
+        obx_int.ModelProperty(
+            id: const obx_int.IdUid(2, 401618208555079384),
+            name: 'title',
+            type: 9,
+            flags: 0),
+        obx_int.ModelProperty(
+            id: const obx_int.IdUid(3, 4125188452454843826),
+            name: 'lastMessage',
+            type: 9,
+            flags: 0),
+        obx_int.ModelProperty(
+            id: const obx_int.IdUid(4, 1334417023091463963),
+            name: 'lastTime',
             type: 10,
             flags: 0)
       ],
       relations: <obx_int.ModelRelation>[],
-      backlinks: <obx_int.ModelBacklink>[])
+      backlinks: <obx_int.ModelBacklink>[
+        obx_int.ModelBacklink(
+            name: 'messages', srcEntity: 'ChatMessage', srcField: '')
+      ])
 ];
 
 /// Shortcut for [obx.Store.new] that passes [getObjectBoxModel] and for Flutter
@@ -85,8 +128,8 @@ Future<obx.Store> openStore(
 obx_int.ModelDefinition getObjectBoxModel() {
   final model = obx_int.ModelInfo(
       entities: _entities,
-      lastEntityId: const obx_int.IdUid(1, 5351178910916169338),
-      lastIndexId: const obx_int.IdUid(0, 0),
+      lastEntityId: const obx_int.IdUid(2, 1035596209724151894),
+      lastIndexId: const obx_int.IdUid(1, 3244718780140911478),
       lastRelationId: const obx_int.IdUid(0, 0),
       lastSequenceId: const obx_int.IdUid(0, 0),
       retiredEntityUids: const [],
@@ -100,7 +143,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
   final bindings = <Type, obx_int.EntityDefinition>{
     ChatMessage: obx_int.EntityDefinition<ChatMessage>(
         model: _entities[0],
-        toOneRelations: (ChatMessage object) => [],
+        toOneRelations: (ChatMessage object) => [object.session],
         toManyRelations: (ChatMessage object) => {},
         getId: (ChatMessage object) => object.id,
         setId: (ChatMessage object, int id) {
@@ -108,31 +151,83 @@ obx_int.ModelDefinition getObjectBoxModel() {
         },
         objectToFB: (ChatMessage object, fb.Builder fbb) {
           final textOffset = fbb.writeString(object.text);
-          fbb.startTable(5);
+          final imageOffset =
+              object.image == null ? null : fbb.writeListInt8(object.image!);
+          fbb.startTable(7);
           fbb.addInt64(0, object.id);
           fbb.addOffset(1, textOffset);
           fbb.addBool(2, object.isUser);
           fbb.addInt64(3, object.timestamp.millisecondsSinceEpoch);
+          fbb.addInt64(4, object.session.targetId);
+          fbb.addOffset(5, imageOffset);
           fbb.finish(fbb.endTable());
           return object.id;
         },
         objectFromFB: (obx.Store store, ByteData fbData) {
           final buffer = fb.BufferContext(fbData);
           final rootOffset = buffer.derefObject(0);
-          final idParam =
-              const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0);
           final textParam = const fb.StringReader(asciiOptimization: true)
               .vTableGet(buffer, rootOffset, 6, '');
           final isUserParam =
               const fb.BoolReader().vTableGet(buffer, rootOffset, 8, false);
+          final imageParam = const fb.Uint8ListReader(lazy: false)
+              .vTableGetNullable(buffer, rootOffset, 14) as Uint8List?;
           final timestampParam = DateTime.fromMillisecondsSinceEpoch(
               const fb.Int64Reader().vTableGet(buffer, rootOffset, 10, 0));
           final object = ChatMessage(
-              id: idParam,
               text: textParam,
               isUser: isUserParam,
-              timestamp: timestampParam);
-
+              image: imageParam,
+              timestamp: timestampParam)
+            ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0);
+          object.session.targetId =
+              const fb.Int64Reader().vTableGet(buffer, rootOffset, 12, 0);
+          object.session.attach(store);
+          return object;
+        }),
+    ChatSession: obx_int.EntityDefinition<ChatSession>(
+        model: _entities[1],
+        toOneRelations: (ChatSession object) => [],
+        toManyRelations: (ChatSession object) => {
+              obx_int.RelInfo<ChatMessage>.toOneBacklink(5, object.id,
+                  (ChatMessage srcObject) => srcObject.session): object.messages
+            },
+        getId: (ChatSession object) => object.id,
+        setId: (ChatSession object, int id) {
+          object.id = id;
+        },
+        objectToFB: (ChatSession object, fb.Builder fbb) {
+          final titleOffset = fbb.writeString(object.title);
+          final lastMessageOffset = object.lastMessage == null
+              ? null
+              : fbb.writeString(object.lastMessage!);
+          fbb.startTable(5);
+          fbb.addInt64(0, object.id);
+          fbb.addOffset(1, titleOffset);
+          fbb.addOffset(2, lastMessageOffset);
+          fbb.addInt64(3, object.lastTime?.millisecondsSinceEpoch);
+          fbb.finish(fbb.endTable());
+          return object.id;
+        },
+        objectFromFB: (obx.Store store, ByteData fbData) {
+          final buffer = fb.BufferContext(fbData);
+          final rootOffset = buffer.derefObject(0);
+          final lastTimeValue =
+              const fb.Int64Reader().vTableGetNullable(buffer, rootOffset, 10);
+          final titleParam = const fb.StringReader(asciiOptimization: true)
+              .vTableGet(buffer, rootOffset, 6, '');
+          final object = ChatSession(title: titleParam)
+            ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0)
+            ..lastMessage = const fb.StringReader(asciiOptimization: true)
+                .vTableGetNullable(buffer, rootOffset, 8)
+            ..lastTime = lastTimeValue == null
+                ? null
+                : DateTime.fromMillisecondsSinceEpoch(lastTimeValue);
+          obx_int.InternalToManyAccess.setRelInfo<ChatSession>(
+              object.messages,
+              store,
+              obx_int.RelInfo<ChatMessage>.toOneBacklink(
+                  5, object.id, (ChatMessage srcObject) => srcObject.session));
           return object;
         })
   };
@@ -157,4 +252,35 @@ class ChatMessage_ {
   /// See [ChatMessage.timestamp].
   static final timestamp =
       obx.QueryDateProperty<ChatMessage>(_entities[0].properties[3]);
+
+  /// See [ChatMessage.session].
+  static final session = obx.QueryRelationToOne<ChatMessage, ChatSession>(
+      _entities[0].properties[4]);
+
+  /// See [ChatMessage.image].
+  static final image =
+      obx.QueryByteVectorProperty<ChatMessage>(_entities[0].properties[5]);
+}
+
+/// [ChatSession] entity fields to define ObjectBox queries.
+class ChatSession_ {
+  /// See [ChatSession.id].
+  static final id =
+      obx.QueryIntegerProperty<ChatSession>(_entities[1].properties[0]);
+
+  /// See [ChatSession.title].
+  static final title =
+      obx.QueryStringProperty<ChatSession>(_entities[1].properties[1]);
+
+  /// See [ChatSession.lastMessage].
+  static final lastMessage =
+      obx.QueryStringProperty<ChatSession>(_entities[1].properties[2]);
+
+  /// See [ChatSession.lastTime].
+  static final lastTime =
+      obx.QueryDateProperty<ChatSession>(_entities[1].properties[3]);
+
+  /// see [ChatSession.messages]
+  static final messages =
+      obx.QueryBacklinkToMany<ChatMessage, ChatSession>(ChatMessage_.session);
 }

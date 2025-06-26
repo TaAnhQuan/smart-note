@@ -49,6 +49,7 @@ import 'package:saber/data/tools/pencil.dart';
 import 'package:saber/data/tools/select.dart';
 import 'package:saber/data/tools/shape_pen.dart';
 import 'package:saber/i18n/strings.g.dart';
+import 'package:saber/pages/chat_screen/chat_history_screen.dart';
 import 'package:saber/pages/chat_screen/chat_screen.dart';
 import 'package:saber/pages/home/whiteboard.dart';
 import 'package:screenshot/screenshot.dart';
@@ -1399,13 +1400,12 @@ class EditorState extends State<Editor> {
         setState(() {
           _searchImageData = imageData;
           _isGestureSearchEnabled = false;
-          _isSplit = true;
         });
       },
-      onToggleSplit: () {
-        setState(() {
-          _isSplit = true;
-        });
+      onClearSearch: (){
+          setState(() {
+            _searchImageData = null;
+          });
       },
     );
 
@@ -1699,6 +1699,9 @@ class EditorState extends State<Editor> {
                     onPressed: () {
                       setState(() {
                         _isGestureSearchEnabled = !_isGestureSearchEnabled;
+                        if (_isGestureSearchEnabled) {
+                          _searchImageData = null;
+                        }
                       });
                     },
                     tooltip: _isGestureSearchEnabled ? 'Disable Gesture Search' : 'Enable Gesture Search',
@@ -1810,12 +1813,22 @@ class EditorState extends State<Editor> {
                       duration: Duration(milliseconds: 300),
                       width: widget.splitAxis == Axis.horizontal ? secondSize : null,
                       height: widget.splitAxis == Axis.vertical ? secondSize : null,
-                      child: _isSplit ? ChatScreen(
-                        pages: coreInfo.pages,
-                        currentPageIndex: currentPageIndex,
-                          backgroundImage: coreInfo.pages[currentPageIndex].backgroundImage,
-                        selectedImageData: _searchImageData,
-                      ) : null,
+                      child: AnimatedSwitcher(
+                        duration: Duration(milliseconds: 300),
+                        transitionBuilder: (Widget child, Animation<double> animation) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: child,
+                          );
+                        },
+                        child: _isSplit == true?
+                        ChatHistoryScreen(
+                          pages: coreInfo.pages,
+                          currentPageIndex: currentPageIndex,
+                            backgroundImage: coreInfo.pages[currentPageIndex].backgroundImage,
+                          selectedImageData: _searchImageData,
+                        ) : null,
+                      ),
                     ),
                   ),
                 ] :

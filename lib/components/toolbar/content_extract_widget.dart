@@ -9,14 +9,14 @@ import 'package:saber/components/toolbar/content_extract_painter.dart';
 class ContentExtractWidget extends StatefulWidget {
   final Widget child;
   final Function(Uint8List imageData, Rect searchArea)? onSearch;
-  final Function()? onToggleSplit;
+  final Function()? onClearSearch;
   final bool isGestureSearchEnabled;
 
   const ContentExtractWidget({
     super.key,
     required this.child,
     this.onSearch,
-    this.onToggleSplit,
+    this.onClearSearch,
     required this.isGestureSearchEnabled,
   });
 
@@ -179,8 +179,6 @@ class _ContentExtractWidgetState extends State<ContentExtractWidget> with Ticker
 
   void _showSearchResults() {
     if (_selectionRect == null || _selectedImageData == null) return;
-
-    widget.onToggleSplit?.call();
   }
 
   void _showErrorMessage() {
@@ -209,6 +207,7 @@ class _ContentExtractWidgetState extends State<ContentExtractWidget> with Ticker
 
   void _clearSelection() {
     _resetSearchState(fullReset: true);
+    widget.onClearSearch?.call();
   }
 
   @override

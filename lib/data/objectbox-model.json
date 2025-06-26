@@ -4,37 +4,79 @@
   "_note3": "If you have VCS merge conflicts, you must resolve them according to ObjectBox docs.",
   "entities": [
     {
-      "id": "1:5351178910916169338",
-      "lastPropertyId": "4:7007827801390871104",
+      "id": "1:8102222585235140055",
+      "lastPropertyId": "6:7049840092081284253",
       "name": "ChatMessage",
       "properties": [
         {
-          "id": "1:1284676532769200580",
+          "id": "1:4041783818976058394",
           "name": "id",
           "type": 6,
           "flags": 1
         },
         {
-          "id": "2:5425485892341831608",
+          "id": "2:4739886741642924537",
           "name": "text",
           "type": 9
         },
         {
-          "id": "3:2158682177251918228",
+          "id": "3:4007956480101575122",
           "name": "isUser",
           "type": 1
         },
         {
-          "id": "4:7007827801390871104",
+          "id": "4:7802172268412385950",
           "name": "timestamp",
+          "type": 10
+        },
+        {
+          "id": "5:5046878483804748976",
+          "name": "sessionId",
+          "type": 11,
+          "flags": 520,
+          "indexId": "1:3244718780140911478",
+          "relationTarget": "ChatSession"
+        },
+        {
+          "id": "6:7049840092081284253",
+          "name": "image",
+          "type": 23
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "2:1035596209724151894",
+      "lastPropertyId": "4:1334417023091463963",
+      "name": "ChatSession",
+      "properties": [
+        {
+          "id": "1:5103748362560189788",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:401618208555079384",
+          "name": "title",
+          "type": 9
+        },
+        {
+          "id": "3:4125188452454843826",
+          "name": "lastMessage",
+          "type": 9
+        },
+        {
+          "id": "4:1334417023091463963",
+          "name": "lastTime",
           "type": 10
         }
       ],
       "relations": []
     }
   ],
-  "lastEntityId": "1:5351178910916169338",
-  "lastIndexId": "0:0",
+  "lastEntityId": "2:1035596209724151894",
+  "lastIndexId": "1:3244718780140911478",
   "lastRelationId": "0:0",
   "lastSequenceId": "0:0",
   "modelVersion": 5,

@@ -13,14 +13,19 @@ class ChatScreen extends StatefulWidget {
   final int currentPageIndex;
   final EditorImage? backgroundImage;
   final Uint8List? selectedImageData;
+  final int sessionId;
+  final VoidCallback? onBackPressed;
+  final Store store;
 
-  const ChatScreen({
-    super.key,
-    required this.pages,
-    required this.currentPageIndex,
-    required this.backgroundImage,
-    this.selectedImageData,
-  });
+  const ChatScreen(
+      {super.key,
+      required this.pages,
+      required this.currentPageIndex,
+      required this.backgroundImage,
+      this.selectedImageData,
+      required this.sessionId,
+      this.onBackPressed,
+      required this.store});
 
   @override
   _ChatScreenState createState() => _ChatScreenState();
@@ -28,8 +33,8 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final List<ChatMessage> _messages = [];
-  late final Store _store;
   late final Box<ChatMessage> _messageBox;
+  Uint8List? _selectedImage;
 
   // Controller define
   final TextEditingController _controller = TextEditingController();
@@ -42,25 +47,29 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     _initInputField();
     _initStore();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToBottom();
+    });
+    _selectedImage = widget.selectedImageData;
   }
 
   Future<void> _initStore() async {
-    _store = await openStore();
-    _messageBox = _store.box<ChatMessage>();
+    _messageBox = widget.store.box<ChatMessage>();
     _loadSavedMessages();
   }
 
   void _loadSavedMessages() {
-    final saved = _messageBox.getAll();
-    setState(() {
-      _messages.addAll(saved);
-      _scrollToBottom();
-    });
+    final queryBuilder = _messageBox
+        .query(ChatMessage_.session.equals(widget.sessionId))
+      ..order(ChatMessage_.timestamp);
+    final query = queryBuilder.build();
+    _messages.addAll(query.find());
+    query.close();
+    setState(() {});
   }
 
   @override
   void dispose() {
-    _store.close();
     _speechToTextService.removeListener(_onSpeechToTextChange);
     super.dispose();
   }
@@ -70,14 +79,17 @@ class _ChatScreenState extends State<ChatScreen> {
     _speechToTextService.addListener(_onSpeechToTextChange);
   }
 
-  void _onSpeechToTextChange(){
+  void _onSpeechToTextChange() {
     _controller.text = _speechToTextService.lastWords;
     _controller.selection = TextSelection.fromPosition(
       TextPosition(offset: _controller.text.length),
     );
   }
 
-  String _extractFinalAnswer(String response) {
+  String _extractFinalAnswer(String? response) {
+    if (response == null) {
+      return 'No response from LLM';
+    }
     final conclusionMarker = '**Conclusion:**';
     final conclusionIndex = response.indexOf(conclusionMarker);
     if (conclusionIndex != -1) {
@@ -95,40 +107,53 @@ class _ChatScreenState extends State<ChatScreen> {
     final userMessageText = _controller.text.trim();
     if (userMessageText.isEmpty) return;
 
-
-    setState(() {
-      final userMessage = ChatMessage(text: userMessageText, isUser: true);
-
-      _messages.add(ChatMessage(text: userMessageText, isUser: true));
-      _messageBox.put(userMessage);
-      _messages.add(ChatMessage(text: '...', isUser: false, id: 0));
-    });
+    print('User text message $userMessageText');
+    if (mounted) {
+      setState(() {
+        final userMessage = ChatMessage(
+          text: userMessageText,
+          isUser: true,
+          image: widget.selectedImageData,
+          sessionId: widget.sessionId,
+        );
+        _messages.add(userMessage);
+        _messageBox.put(userMessage);
+        _messages.add(ChatMessage(
+            text: '...', isUser: false, sessionId: widget.sessionId));
+        _selectedImage = null;
+      });
+    }
 
     _controller.clear();
     _scrollToBottom();
 
+    print('Try to get response from the LLM');
     try {
       final currentPageStrokes = widget.pages[widget.currentPageIndex].strokes;
-
+      print('Get message from the LLM');
       await _llmService.sendToGemini(
           userMessageText, widget.selectedImageData, currentPageStrokes);
 
       final response = _extractFinalAnswer(_llmService.llmResponse);
-
-      setState(() {
-        _messages.removeLast();
-
-        final botMessage = ChatMessage(text: response, isUser: false);
-        _messages.add(ChatMessage(text: response, isUser: false));
-        _messageBox.put(botMessage);
-      });
+      print('LLM response: $response');
+      if (mounted) {
+        setState(() {
+          _messages.removeLast();
+          final botMessage = ChatMessage(
+              text: response, isUser: false, sessionId: widget.sessionId);
+          _messages.add(botMessage);
+          _messageBox.put(botMessage);
+        });
+      }
     } catch (e) {
       setState(() {
+        final botMessage = ChatMessage(
+            text: 'Error: ${e.toString()}',
+            isUser: false,
+            sessionId: widget.sessionId);
         _messages.removeLast();
-        _messages.add(ChatMessage(
-          text: 'Error: ${e.toString()}',
-          isUser: false,
-        ));
+        _messages.add(botMessage);
+        _messageBox.put(botMessage);
       });
     }
 
@@ -185,8 +210,21 @@ class _ChatScreenState extends State<ChatScreen> {
                     ? CrossAxisAlignment.end
                     : CrossAxisAlignment.start,
                 children: [
-                  Text(msg.text,
-                      style: TextStyle(color: textColor, fontSize: 16)),
+                  if (msg.image != null)
+                    Container(
+                      width: 200,
+                      height: 200,
+                      margin: EdgeInsets.only(bottom: 8),
+                      child: Image.memory(
+                        msg.image!,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  if (msg.text.isNotEmpty)
+                    Text(
+                      msg.text,
+                      style: TextStyle(color: textColor, fontSize: 16),
+                    ),
                   SizedBox(height: 4),
                   Text(
                     "${msg.timestamp.hour.toString().padLeft(2, '0')}:${msg.timestamp.minute.toString().padLeft(2, '0')}",
@@ -241,7 +279,10 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Assistant'),
-        automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: widget.onBackPressed,
+        ),
         actions: [
           IconButton(
             icon: Icon(Icons.delete_forever),
@@ -265,13 +306,18 @@ class _ChatScreenState extends State<ChatScreen> {
             child: Row(
               children: [
                 IconButton(
-                  icon: Icon(_speechToTextService.listening ? Icons.stop : Icons.mic),
-                  color: _speechToTextService.listening? Colors.red : Colors.grey,
-                  onPressed: _speechToTextService.available ? () async {
-                    await _speechToTextService.toggleListening();
-                  }
-                  : null,
-                  tooltip: _speechToTextService.listening ? 'Stop Listening' : 'Start Listening',
+                  icon: Icon(
+                      _speechToTextService.listening ? Icons.stop : Icons.mic),
+                  color:
+                      _speechToTextService.listening ? Colors.red : Colors.grey,
+                  onPressed: _speechToTextService.available
+                      ? () async {
+                          await _speechToTextService.toggleListening();
+                        }
+                      : null,
+                  tooltip: _speechToTextService.listening
+                      ? 'Stop Listening'
+                      : 'Start Listening',
                 ),
                 Expanded(
                   child: TextField(

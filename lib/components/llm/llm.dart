@@ -16,7 +16,8 @@ class LLMService with ChangeNotifier {
   final TtsService _ttsService = TtsService();
 
   Future<void> sendToGemini(String inputText, Uint8List? selectImage, List<Stroke> strokes) async {
-    final selectImageB64 = base64Encode(selectImage!);
+    final selectImageB64 = selectImage != null ? base64Encode(selectImage) : '0';
+
     try {
       notifyListeners();
 
@@ -25,35 +26,62 @@ class LLMService with ChangeNotifier {
       }
 
       // Recognize handwriting from strokes
-      await _handwritingRecognitionService.recognizeHandWriting(strokes);
-      final handWritingToText = _handwritingRecognitionService.recognizedText.value;
+      // await _handwritingRecognitionService.recognizeHandWriting(strokes);
+      // final handWritingToText = _handwritingRecognitionService.recognizedText.value;
 
       final String payload;
 
-      payload = jsonEncode({
-        'contents': [
-          {
-            'parts': [
-              {'text': '$inputText $handWritingToText'},
-              {
-                'inline_data': {
-                  'mime_type': 'image/png',
-                  'data': selectImageB64,
-                }
-              },
-            ]
-          }
-        ]
-      });
+      if (selectImageB64 == '0'){
+        payload = jsonEncode({
+          'contents': [
+            {
+              'parts': [
+                {'text': '$inputText'},
+              ]
+            }
+          ]
+        });
+      }else{
+        payload = jsonEncode({
+          'contents': [
+            {
+              'parts': [
+                {'text': '$inputText'},
+                {
+                  'inline_data': {
+                    'mime_type': 'image/png',
+                    'data': selectImageB64,
+                  }
+                },
+              ]
+            }
+          ]
+        });
+      }
 
-      final response = await http
-          .post(
-        Uri.parse(
-            'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$_GEMINI_API_KEY'),
-        headers: {'Content-Type': 'application/json'},
-        body: payload,
-      )
-          .timeout(const Duration(seconds: 30));
+
+      print('Payload send to Gemini: $payload');
+      late http.Response response;
+      if (selectImageB64 == '0'){
+        response = await http
+            .post(
+          Uri.parse(
+              'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$_GEMINI_API_KEY'),
+          headers: {'Content-Type': 'application/json'},
+          body: payload,
+        );
+      }else {
+        response = await http
+            .post(
+          Uri.parse(
+              'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$_GEMINI_API_KEY'),
+          headers: {'Content-Type': 'application/json'},
+          body: payload,
+        )
+            .timeout(const Duration(seconds: 30));
+      }
+
+      print('Response from gemini $response');
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
